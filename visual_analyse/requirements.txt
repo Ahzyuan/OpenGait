@@ -12,3 +12,5 @@ einops
 # visual analysis required
 rich
 fire
+matplotlib
+scikit-learn

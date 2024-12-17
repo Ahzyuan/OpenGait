@@ -6,14 +6,13 @@ import os,pickle,json,math,pdb
 import torch
 import torch.nn as nn
 import torch.utils.data as tordata
-import opengait.data.sampler as Samplers
 from tqdm import tqdm
 from rich import print
 from opengait.data.collate_fn import CollateFn
 from opengait.modeling import models as gaitmodels
 from opengait.data.transform import get_transform
 from opengait.modeling.base_model import BaseModel
-from opengait.utils import get_attr_from, get_valid_args
+from opengait.utils import get_valid_args
 
 class SimpleModel(BaseModel, nn.Module):
     
@@ -69,9 +68,9 @@ class SimpleModel(BaseModel, nn.Module):
     def get_loader(self, data_cfg, train=True):
         sampler_cfg = self.cfgs['trainer_cfg']['sampler'] if train else self.cfgs['evaluator_cfg']['sampler']
         dataset = NoMsgDataSet(data_cfg, train)
+        self.dataset = dataset
 
-        Sampler = get_attr_from([Samplers], sampler_cfg['type'])
-        vaild_args = get_valid_args(Sampler, sampler_cfg, free_keys=[
+        vaild_args = get_valid_args(InferenceSampler, sampler_cfg, free_keys=[
             'sample_type', 'type'])
         sampler = InferenceSampler(dataset, **vaild_args) # Sampler(dataset, **vaild_args)
 
