@@ -15,7 +15,6 @@ from rich.text import Text
 from rich.panel import Panel
 from typing import Union,Tuple
 from rich.console import Console
-from sklearn.manifold import TSNE
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from .utils import temporal_align
@@ -38,13 +37,11 @@ python -m visual_analyse.visualizer visual_gradcam \
 ## draw t-sne
 python -m visual_analyse.visualizer visual_tsne \
 <path-to-npz-file or dir> \
-[-e <embed_dim>] \
 [-m <marker_size>] \
-[-t <transparent>] \
-[-d <draw_mode>] \
-[-v <verbose or not>] \
-[-T <dict of customized t-sne args>] \
-[--seed <random_seed>] \
+[-c <colormap>] \
+[-f <figure size>] \
+[--title <title of plot>] \
+[--transparent <transparent or not>] \
 [--save_path <save_path>] \
 [--save_ext <save_extention>]
 '''
@@ -68,22 +65,23 @@ class Visualizer:
 
     def plot_embedding(self,
                        feats:np.ndarray, labels:Union[list,np.ndarray],
-                       fig_size:Tuple[float,float]=(8.0,8.0), marker_size:int = 50,
-                       cmap:str='Spectral',
-                       title:Union[str, None]=None):
+                       title:Union[str, None]=None, fig_size:Tuple[float,float]=(8.0,8.0), 
+                       marker_size:int = 50,
+                       cmap:str='Spectral'):
         """
         Plot t-sne embedding point in 2D or 3D space.
+        Borrowed and modified from: https://github.com/cvxgrp/pymde/blob/40472bc47a6d4b53b2a196ed2b6741471a04e830/pymde/experiment_utils.py#L279
 
         Args:
-            - feats (np.ndarray): t-sne embedding features.
+            - `feats` (np.ndarray): t-sne embedding features, shape is [N, 2] or [N, 3].
 
-            - labels (Union[list,np.ndarray]): labels corresponding to each feature, it is a vertor with same length as `feats`
+            - `labels` (Union[list,np.ndarray]): labels corresponding to each feature, it is a vertor with same length as `feats`
 
-            - fig_size (Tuple[float,float], optional): figure size in inches. Defaults to (8.0,8.0).
+            - `fig_size` (Tuple[float,float], optional): figure size in inches. Defaults to (8.0,8.0).
 
-            - marker_size (int, optional): size of scatter. Defaults to 50.
+            - `marker_size` (int, optional): size of scatter. Defaults to 50.
 
-            - cmap (str, optional): colormap. Defaults to 'Spectral'.
+            - `cmap` (str, optional): colormap. Defaults to 'Spectral'.
 
             - `title` (Union[str, None], optional): title of the plot. Defaults to None.
 
@@ -102,9 +100,6 @@ class Visualizer:
             plot_3d = True
         else:
             fig, ax = plt.subplots(1, 1, figsize=fig_size)
-
-            if feats.shape[1] == 1:
-                feats = np.c_[feats, np.zeros(feats.shape[0])]
             
             plot_3d = False
 
@@ -363,11 +358,11 @@ class Visualizer:
 
     def visual_tsne(self, 
                     npz_path:str,
-                    embed_dim:int=2, seed:int=1597, 
-                    marker_size:int=50, transparent:bool=True, title:Union[str, None]=None,
-                    save_path:Union[str, None]=None, save_ext:str='png',
-                    verbose:bool=True,
-                    TSNE_ARGS:dict={}):
+                    title:Union[str, None]=None, fig_size:Tuple[float,float]=(8.0,8.0),
+                    marker_size:int=50, cmap:str='Spectral',
+                    transparent:bool=True, 
+                    save_path:Union[str, None]=None, save_ext:str='png'
+                    ):
         
         """
         Perform t-SNE with given features and corresponding labels.
@@ -377,15 +372,15 @@ class Visualizer:
                 - `feats` (np.ndarray): inferenced features with shape [BatchSize, FeatureDim]
                 - `labels` (np.ndarray[str]): labels corresponding to the features, with shape [BatchSize] 
 
-            - `embed_dim` (int, optional): embedding dim of t-sne, can be 2 or 3. Defaults to 2.
+            - `title` (Union[str, None], optional): title of the plot. Defaults to None.
 
-            - `seed` (int, optional): random seed, used to reproduce the same embedding. Defaults to 1597.
+            - `fig_size` (Tuple[float,float], optional): figure size in inches. Defaults to (8.0,8.0).
 
             - `marker_size` (int, optional): size of the markers in the plot. Defaults to 50.
 
-            - `title` (Union[str, None], optional): title of the plot. Defaults to None.
+            - `cmap` (str, optional): colormap. Defaults to 'Spectral'.
 
-            - `transparent` (bool, optional): Whether to save transparent image. Default to True.
+            - `transparent` (bool, optional): whether to save transparent image. Default to True.
 
             - `save_path` (Union[str, None], optional): path to save the result image. If it's set to None, will save the result image \
                                                         in the same directory as the input npz file. Defaults to None
@@ -393,10 +388,6 @@ class Visualizer:
             - `save_ext` (str, optional): extension of the saved image, \  
                                           support ['png','jpg','jpeg','bmp','tiff','tif','svg']. \  
                                           Defaults to 'png'.                          
-
-            - `verbose` (bool, optional): whether to print the progress while embedding. Defaults to True.
-
-            - `TSNE_ARGS` (dict, optional): used to receive customized TSNE drawing parameters.
         
         Returns:
             None
@@ -412,24 +403,15 @@ class Visualizer:
             console = Console()
             for npz_path in npz_paths:
                 self.visual_tsne(npz_path=npz_path, 
-                                 embed_dim=embed_dim, seed=seed,
-                                 marker_size=marker_size, transparent=transparent,
-                                 save_path=save_path, save_ext=save_ext,
-                                 verbose=verbose,
-                                 TSNE_ARGS=TSNE_ARGS)
+                                 title=title, fig_size=fig_size,
+                                 marker_size=marker_size, cmap=cmap,
+                                 transparent=transparent, 
+                                 save_path=save_path, save_ext=save_ext)
                 print('[green]' + '-'*console.width + '[/]')
             return
 
-        assert embed_dim > 0, f'Target dim should be positive, but got {embed_dim}![/]'
-        assert marker_size > 0, f'Marker size should be positive, but got {marker_size}![/]'
         
-        if TSNE_ARGS:
-            TSNE_ARGS['verbose'] = verbose
-            print('[green]' + '-'*30 + '[/]')
-            print('[green]Receive args for t-sne:[/]')
-            for k,v in TSNE_ARGS.items():
-                print(f'[green]{k}: {v}[/]')
-            print('[green]' + '-'*30 + '[/]')
+        assert marker_size > 0, f'Marker size should be positive, but got {marker_size}![/]'
         
         # validate file extention 
         if not npz_path.endswith('.npz'):
@@ -458,36 +440,14 @@ class Visualizer:
         # load features and corresponding labels stored in npz file
         npz_path = os.path.abspath(npz_path)
         with np.load(npz_path, allow_pickle=True) as datas:
-            feats = datas['feats'] # np.ndarray, (B,C,P)
-            labels = datas['labels'] # np.ndarray, (B,), each element is a string     
+            feats = datas['feats'] # np.ndarray, (N, 2(3))
+            labels = datas['labels'] # np.ndarray, (N,), each element is a string     
         assert len(feats) > 1, f'There should be more than one features in the npz file, but got feature with shape {feats.shape}!'   
         
-        # dimension reduction
-        if TSNE_ARGS:
-            tsne = TSNE(**TSNE_ARGS)
-        else:
-            tsne = TSNE(n_components=embed_dim, 
-                        init='pca', 
-                        method='exact',
-                        n_jobs=-1,
-                        n_iter=1000, 
-                        learning_rate='auto',
-                        random_state=seed,
-                        verbose=verbose)
-
-        shrink_feats = tsne.fit_transform(feats) # N, embed_dim
-
-        # dimension check & normalize the embedding to [0,1]
-        if embed_dim > 3:
-            print(f'[bold yellow]⚠ Embedding dim is set to {embed_dim}, only use the [red]first 3 dims[/red] for visualization![/]')
-        shrink_feats = shrink_feats[:,:3]
-        x_min, x_max = np.min(shrink_feats, 0), np.max(shrink_feats, 0)
-        norm_feats = (shrink_feats - x_min) / (x_max - x_min)
-
         # visualization
-        ax = self.plot_embedding(norm_feats, labels, 
-                                 marker_size=marker_size,
-                                 title=title)
+        ax = self.plot_embedding(feats, labels,
+                                 title=title, fig_size=fig_size, 
+                                 cmap=cmap, marker_size=marker_size)
         
         # saving       
         ax.figure.savefig(save_path, 
@@ -497,12 +457,11 @@ class Visualizer:
         
         print(f'[bold][green]T-SNE results saved in[/green] [magenta]{save_path}.\n[/]')
         print('[bold][dark_goldenrod]●  If you are not satisfied with the embedding results, ' + \
-              'you can customize the embedding by passing in TSNE parameters to `-T` in this command. ' + \
-              'We accept parameters of `sklearn.manifold.TSNE`, check them with this command:\n[/]')
-        print('[bold gray54]    python -c "from sklearn.manifold import TSNE;print(TSNE.__doc__)"[/]')
-        print('[bold gray54]    e.g. python -m visual_analyse.visualizer visual_tsne <npz_file> -T "{"perplexity":45, "random_state":1488}"\n[/]')
+              'you can customize the embedding by passing in `sklearn.manifold.TSNE` parameters to `-T` like:\n')
+        print('[bold gray54]   python -m visual_analyse.tsne -c <config_path> -T "{"perplexity":45, "random_state":1488}"\n[/]')
+        print('[bold gray54]   Other parameters see: [underline]python -c "from sklearn.manifold import TSNE;print(TSNE.__doc__)"\n[/]')
 
-        if shrink_feats.shape[1] == 3:
+        if feats.shape[1] == 3:
             model_name, dataset_name = os.path.basename(npz_path)[:-4].split('_')
             ax_pkl_path = os.path.join(os.path.dirname(save_path), f'{model_name}_{dataset_name}_adjust3d.pkl')
             with open(ax_pkl_path, 'wb') as f:
